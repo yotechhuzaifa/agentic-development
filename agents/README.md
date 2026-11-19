@@ -24,6 +24,6 @@ This folder will hold **one contract per agent**. Nothing here is implemented ye
 - **Log events emitted** — from the verbose catalog in `docs/13`, with mandatory fields.
 - **Budget tag** — token/cost class from D-014.
 
-All choices are final in `DECISIONS.md`; contracts must reflect Manager + Specialists + Verifier (D-001), Go runtime (D-002), chi/zerolog/errgroup (D-003–D-006), and verbosity (D-013).
+All choices are final in `DECISIONS.md`; contracts must reflect Manager + Specialists + Verifier (D-001), Go runtime (D-002), Wails-bound transport (D-018), zerolog/errgroup (D-004/D-006), and verbosity (D-013). No HTTP router.
 
 See `CONTRIBUTING.md` for the full rules and `docs/01`, `docs/05`, `docs/09` for the reasoning.

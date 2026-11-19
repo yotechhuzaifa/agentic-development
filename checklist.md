@@ -30,7 +30,7 @@ Nothing here is optional. All architecture is **already decided** in `DECISIONS.
 - [ ] Success / failure labels recorded
 - [ ] Runs replayable from `runs/` (SQLite index + JSONL)
 - [ ] **Verbose logging standard implemented** (`docs/13`): mandatory fields, event catalog, redaction, verbose run summary
-- [ ] HTTP access logs via chi `RequestID` + zerolog `hlog` correlation
+- [ ] Bound-method calls logged with `call_id` (no HTTP access logging — D-018)
 - [ ] Evaluation set exists in `eval/` (20–100 tasks incl. RAND tests) + scoring
 
 ## 5. State & memory [8]
@@ -60,7 +60,7 @@ Nothing here is optional. All architecture is **already decided** in `DECISIONS.
 - [ ] Outputs labeled **verified / unverified / assumption**
 
 ## 9. Library-first + verbose (your preferences) — D-003/D-004/D-013/D-014
-- [ ] **chi v5** used for all HTTP/JSON routing (no raw ServeMux custom routing)
+- [ ] **Wails bindings** used for UI↔Go transport; no HTTP router added (D-018)
 - [ ] **zerolog** used for all logging, verbose by default, redaction enforced (no `log.Printf`)
 - [ ] **errgroup/semaphore** for concurrency (no raw WaitGroup chains)
 - [ ] **gofakeit v7** for all random data (no hand-rolled random strings)

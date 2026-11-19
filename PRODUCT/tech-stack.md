@@ -173,17 +173,17 @@ The chat's factual claims should be checked against live/official docs before im
 ---
 
 ## 8. Agentic runtime libraries (added by you — not in the chat)
-The agentic layer is also Go and library-first (D-002–D-007, D-013). Verified via Context7 `/go-chi/docs`, `/rs/zerolog`, `/brianvoe/gofakeit`.
+The agentic layer is also Go and library-first, but only with necessary libraries (D-002–D-007, D-013, D-018/D-019). Verified via Context7 `/wailsapp/wails` v3.1.0, `/rs/zerolog`, `/brianvoe/gofakeit`, `/websites/pkg_go_dev_modernc_org_sqlite`, `/jackc/pgx`, `/go-git/go-git`.
 
 | Concern | Library | Decision |
 |---|---|---|
-| HTTP/JSON routing | **`github.com/go-chi/chi/v5`** + `/middleware` | D-003 |
-| Logging (verbose) | **`github.com/rs/zerolog`** + `/hlog` | D-004, D-013 |
+| UI ↔ Go transport | **Wails v3 bindings** — no HTTP router | D-018 (chi removed as redundant) |
+| Logging (verbose) | **`github.com/rs/zerolog`** only (no `hlog`/`alice`) | D-004, D-013, D-019 |
 | Fan-out/gather | **`golang.org/x/sync/errgroup`** + `semaphore` | D-006 |
 | LLM calls | Official OpenAI Go SDK **[VERIFY]** `github.com/openai/openai-go` | D-005 |
-| Trace store | `modernc.org/sqlite` (WAL) + JSONL | D-007 |
+| Trace store | `modernc.org/sqlite` (WAL, verified) + JSONL — one DB | D-007, D-019 |
 | IDs | `github.com/google/uuid` | D-013 |
 | Schema validation | JSON-schema validator **[VERIFY]** `github.com/santhosh-tekuri/jsonschema/v6` | D-005/D-006 |
-| Random generator | **`github.com/brianvoe/gofakeit/v7`** | D-012, `PRODUCT/random-generator.md` |
+| Random generator | **`github.com/brianvoe/gofakeit/v7`** (verified) | D-012, `PRODUCT/random-generator.md` |
 
-Full registry, routes, components, and run lifecycle: `docs/12-go-agent-runtime.md`. Verbose logging standard: `docs/13-verbose-logging.md`. Library policy: `docs/14-library-policy.md`.
+**Removed:** chi + middleware, `hlog`, `alice`, `godotenv`, separate trace DB, Tauri/Rust tools. Full registry and bound-method surface: `docs/12-go-agent-runtime.md`. Verbose logging: `docs/13-verbose-logging.md`. Library policy: `docs/14-library-policy.md`.

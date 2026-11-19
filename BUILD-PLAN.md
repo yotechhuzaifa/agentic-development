@@ -3,9 +3,9 @@
 This connects the **product feature list** ([`PRODUCT/feature-list.md`](PRODUCT/feature-list.md)) to the **agentic method** ([`docs/`](docs/)). All choices are final in [`DECISIONS.md`](DECISIONS.md) — do not re-decide. Each phase has a gate — do not start the next phase until the gate passes.
 
 ## Phase 0 — Agentic foundation (gate before any feature code)
-Goal: the Go/chi/zerolog system for building is ready. See [`docs/10-starter-plan.md`](docs/10-starter-plan.md), [`docs/12-go-agent-runtime.md`](docs/12-go-agent-runtime.md), [`docs/13-verbose-logging.md`](docs/13-verbose-logging.md), [`docs/14-library-policy.md`](docs/14-library-policy.md).
+Goal: the Go/Wails-bound/zerolog system for building is ready. See [`docs/10-starter-plan.md`](docs/10-starter-plan.md), [`docs/12-go-agent-runtime.md`](docs/12-go-agent-runtime.md), [`docs/13-verbose-logging.md`](docs/13-verbose-logging.md), [`docs/14-library-policy.md`](docs/14-library-policy.md).
 - [x] Orchestration pattern FINAL: Manager + Specialists + Verifier (D-001)
-- [x] Stack FINAL: in-house Go orchestration with chi/zerolog/errgroup (D-002–D-007)
+- [x] Stack FINAL: in-house Go orchestration, Wails bindings, zerolog, errgroup (D-002–D-007, D-018/D-019)
 - [x] Conflicts RESOLVED: Wails + Go + go-git + go-keyring (D-011)
 - [ ] Run **[VERIFY]** factual checks (LLM SDK path, Goja path, Wails version, library versions, Postman tokens) and record results in `DECISIONS.md`
 - [ ] Define 2–3 specialists (Research, Planner, Executor) + Manager + **Verifier** contracts in `agents/`
@@ -55,6 +55,6 @@ Goal: the Go/chi/zerolog system for building is ready. See [`docs/10-starter-pla
 2. Read `PRODUCT/product-brief.md`, `PRODUCT/tech-stack.md`, `PRODUCT/feature-list.md`, and `PRODUCT/random-generator.md` for the WHAT.
 3. Read `docs/01`–`docs/11` (method), then `docs/12`–`docs/14` (Go runtime, verbose logging, library policy) for the HOW.
 4. Respect `DECISIONS.md` — every choice is final; do not re-decide. Only **[VERIFY]** factual checks remain.
-5. Be library-first (`docs/14`): chi for routing, zerolog for logging, errgroup for concurrency, gofakeit for random data, SDK for LLM calls — no raw coding.
+5. Be library-first (`docs/14`): Wails bindings for UI↔Go, zerolog for logging, errgroup for concurrency, gofakeit for random data, SDK for LLM calls — no raw coding, no unnecessary libraries (D-019).
 6. Be verbose (`docs/13`) in logs, traces, errors, docs, and CLI.
 7. Work one phase at a time and stop at each gate for review.

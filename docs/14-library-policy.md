@@ -1,6 +1,6 @@
 # 14 — Library-First Policy
 
-You asked to prefer libraries over raw coding. This doc makes that a rule with a decision test, so it survives across developers and AI agents.
+You asked to prefer libraries over raw coding — but not unnecessary ones. This doc makes that a rule with a decision test, so it survives across developers and AI agents. Verified registry in `docs/12.1`; removals in D-018/D-019.
 
 ## 14.1 The rule
 For any non-trivial concern, use a **maintained, well-documented library** before writing custom code. Write custom code only when no suitable library exists, or when the logic is the product's actual differentiator.
@@ -8,7 +8,7 @@ For any non-trivial concern, use a **maintained, well-documented library** befor
 ## 14.2 Decision test (apply in order)
 1. **Required behavior already exists in a chosen library?** Use it. Change nothing.
 2. **A library in the approved registry (`docs/12.1`) covers it?** Use that library.
-3. **Standard library / platform covers it well** (e.g. `context`, `net/http` types, `encoding/json` through chi/zerolog)? Use it.
+3. **Standard library / platform covers it well** (e.g. `context`, `encoding/json`, Wails bindings for UI↔Go)? Use it — no library needed.
 4. **No library fits and the logic is small?** Write it in the layer that owns the invariant.
 5. **Existing structure blocks clean ownership?** Propose a coherent refactor via ADR.
 
@@ -16,8 +16,8 @@ Never add a single-implementation interface, speculative extension point, config
 
 ## 14.3 Approved registry (summary)
 See `docs/12.1` for the full table. Headlines:
-- **chi v5** — all HTTP/JSON routing and middleware.
-- **zerolog** — all logging, verbose by default, redaction enforced (`docs/13`).
+- **Wails bindings** — UI ↔ Go transport; no HTTP router (D-018). chi was removed as redundant.
+- **zerolog** — all logging, verbose by default, redaction enforced (`docs/13`). No `hlog`/`alice`.
 - **errgroup / semaphore** — all fan-out, gather, and concurrency caps.
 - **official OpenAI Go SDK** — all LLM calls and tool-call parsing **[VERIFY module path]**.
 - **modernc.org/sqlite** — run index and app state; JSONL for traces.
@@ -33,7 +33,8 @@ See `docs/12.1` for the full table. Headlines:
 4. Only then use it. Pin versions; update deliberately.
 
 ## 14.5 Anti-patterns (rejected)
-- Hand-rolling HTTP routing when chi exists.
+- Adding an HTTP router/framework when Wails bindings already cover the transport (D-018).
+- Adding a library "just in case" — every dependency must have a current owner in `docs/12.1`.
 - Using `log.Printf` or building a custom logger when zerolog exists.
 - Raw `sync.WaitGroup` chains when `errgroup` exists.
 - Hand-rolled random strings when gofakeit exists.
@@ -44,4 +45,4 @@ See `docs/12.1` for the full table. Headlines:
 Library choices must be **documented verbosely**: each registry entry states why it won and what it replaced. Dependency updates are logged as `dependency.updated` events with version and rationale. No silent swaps.
 
 ## 14.7 Standard library still wins when…
-The concern is trivial, stable, and has no meaningful library (e.g. `errors`, `context`, `time`, `strings`). But HTTP, logging, concurrency orchestration, schema validation, IDs, and fake data always go through the registry.
+The concern is trivial, stable, and has no meaningful library (e.g. `errors`, `context`, `time`, `strings`). But logging, concurrency orchestration, schema validation, IDs, and fake data always go through the registry; UI↔Go transport goes through Wails bindings, not an HTTP framework.

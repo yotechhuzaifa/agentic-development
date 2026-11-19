@@ -14,7 +14,7 @@ runs/
 ## Purpose
 - Make every run **replayable** — if you can't replay and see tool calls, you can't improve the system.
 - Capture the observability fields from `docs/04-observability.md`: transcript per agent, tool I/O, timestamps + retries, per-agent cost/tokens, success/failure labels.
-- Be **verbose** (D-013): follow the mandatory field set and event catalog in `docs/13-verbose-logging.md`. `trace.jsonl` is one JSON object per event with `run_id`, `agent_id`, `span_id`, `request_id`, full redacted `input`/`output`, tokens/cost, duration, status, retry count, and verification label.
+- Be **verbose** (D-013): follow the mandatory field set and event catalog in `docs/13-verbose-logging.md`. `trace.jsonl` is one JSON object per event with `run_id`, `agent_id`, `span_id`, `call_id`, full redacted `input`/`output`, tokens/cost, duration, status, retry count, and verification label.
 - Store `summary.json` with the verbose run close-out: totals, verification label counts, merge decision, HITL decisions, and random-generation seed/type info when RAND features ran.
 
 ## Decision (final)

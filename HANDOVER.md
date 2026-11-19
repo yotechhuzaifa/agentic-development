@@ -9,11 +9,11 @@ Copy the block below verbatim into a new AI session. All decisions are already m
 You are taking over a project that has been **fully specified but not yet implemented**. Do NOT write application code yet. First read the specification folder, confirm your understanding, run the listed factual checks, then produce only the Phase 0 contracts described below and STOP for approval.
 
 ### Where the spec lives
-Root: `/home/yotech70/agentic-development/`
+Root: `/home/yotech70/AntHill/`
 
 Read first, in order:
 1. `README.md` — map of the kit
-2. `user_readme.md` — the owner's preferences (library-first, verbose, chi, zerolog)
+2. `user_readme.md` — the owner's preferences (library-first, verbose, Wails bindings, zerolog)
 3. `DECISIONS.md` — **every decision is FINAL and binding**. Do not re-open decisions. Only the **[VERIFY]** factual checks remain.
 4. `PRODUCT/product-brief.md` — the product vision, storage invariants, out of scope
 5. `PRODUCT/tech-stack.md` — Wails v3 + Go product stack, rejected alternatives, resolved conflicts
@@ -21,7 +21,7 @@ Read first, in order:
 7. `PRODUCT/random-generator.md` — the Postman-style random generator (RAND-01–RAND-08) added by the owner, not in the original chat
 8. `BUILD-PLAN.md` — phased backlog and phase gates
 9. `docs/01`–`docs/11` — the agentic orchestration method
-10. `docs/12-go-agent-runtime.md` — the concrete Go runtime (chi routes, components, run lifecycle)
+10. `docs/12-go-agent-runtime.md` — the concrete Go runtime (Wails-bound methods, components, run lifecycle)
 11. `docs/13-verbose-logging.md` — the verbose zerolog standard
 12. `docs/14-library-policy.md` — library-first policy and approved registry
 13. `CONTRIBUTING.md` — contract-before-code rule and naming conventions
@@ -32,7 +32,7 @@ A lightweight desktop visual flow app for API + database workflows — "Postman 
 ### What is FINAL (do not re-decide)
 - Orchestration: **Manager + Specialists + Verifier gate**; merge = verifier gate → manager synthesis.
 - Runtime language: **Go**, library-first.
-- HTTP routing: **chi v5** + middleware. Logging: **zerolog**, verbose by default, redaction enforced.
+- Transport: **Wails bound Go methods** — no HTTP router (chi removed as redundant, D-018). Logging: **zerolog**, verbose by default, redaction enforced.
 - Concurrency: **errgroup + semaphore** (not raw WaitGroup). LLM calls: official Go SDK **[VERIFY path]**.
 - Storage: SQLite WAL + JSONL traces. Frontend: Svelte 5. JS sandbox: Goja **[VERIFY path]**.
 - Sync: Wails + go-git + go-keyring; **discard all Tauri/Rust tools** mentioned in the chat (conflict resolved in D-011).
@@ -51,7 +51,7 @@ Run these against official docs/Context7 and record results in `DECISIONS.md` (d
 
 ### How you must work (non-negotiable)
 1. **Contract before code.** No agent/tool implemented until it has a contract in `agents/` or `tools/` and a strict schema in `schemas/`.
-2. **Library-first** (`docs/14`): use chi, zerolog, errgroup, gofakeit, the LLM SDK, and the Go libraries in `docs/12.1`. No raw HTTP routing, no custom logger, no hand-rolled random strings, no raw LLM HTTP calls.
+2. **Library-first, but only necessary libraries** (`docs/14`, D-019): use zerolog, errgroup, gofakeit, the LLM SDK, and the Go libraries in `docs/12.1`. UI↔Go goes through Wails bindings. No HTTP router, no custom logger, no hand-rolled random strings, no raw LLM HTTP calls.
 3. **Verbose** (`docs/13`): every event with the full mandatory field set, full tool I/O, verbose errors with recovery hints, verbose run summary. `--quiet` reduces console only, never traces.
 4. **Manager + Specialists** with parallel fan-out/gather and a **Verifier** blocking ungrounded claims; label verified / unverified / assumption.
 5. **Observability from day one:** full transcript per agent, tool inputs AND outputs, timestamps + retries, per-agent tokens/cost, labels; every run replayable from `runs/`.
@@ -72,5 +72,5 @@ STOP after that and wait for my approval. Then we begin Phase 1 from `BUILD-PLAN
 
 ## Notes for you (not part of the prompt)
 - The AI will not re-decide anything — it only verifies facts and writes contracts. You stay in control.
-- Everything is from your saved chat except the Random Generator, chi/zerolog/Go runtime, and verbosity — those are your explicit additions, marked as such in the docs.
+- Everything is from your saved chat except the Random Generator, the Go runtime (zerolog + verified libraries), and verbosity — those are your explicit additions, marked as such in the docs. chi was requested initially but removed in D-018 as redundant under Wails.
 - Saved chat: `/mnt/c/Users/yotech70/Downloads/Directly Chat with Frontier AI Search Models (11_19_2026 6：49：15 PM).html`.

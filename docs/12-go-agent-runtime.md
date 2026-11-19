@@ -1,85 +1,94 @@
 # 12 — Go Agent Runtime (library-first, verbose)
 
-This is the concrete runtime design that implements `docs/01`–`docs/11`. All choices are final in `DECISIONS.md` (D-002–D-007, D-013–D-016). **No runnable code exists yet** — this is the contract the future implementation must satisfy. Language: **Go**. Policy: **use a library for every cross-cutting concern; never hand-roll what a maintained library already does well.**
+This is the concrete runtime design that implements `docs/01`–`docs/11`. Choices are final in `DECISIONS.md` (D-002–D-019) — notably **D-018: no HTTP router in the default stack**. **No runnable code exists yet** — this is the contract for future implementation. Language: **Go**. Policy: use a library for every cross-cutting concern; never hand-roll what a maintained library already does well — but do not add libraries that nothing needs.
 
-## 12.1 Approved library registry (agentic runtime)
+## 12.1 Approved library registry (verified 2026-11-19)
 
-| Concern | Library | Why / notes |
+| Concern | Library | Why / verification |
 |---|---|---|
-| HTTP routing | **`github.com/go-chi/chi/v5`** (+ `/middleware`) | Composable router, route groups, `Mount`, `chi.URLParam`, middleware chain. Verified `/go-chi/docs`. |
-| Logging | **`github.com/rs/zerolog`** (+ `/hlog`) | Zero-allocation structured JSON logging; verbose event catalog in `docs/13`. Verified `/rs/zerolog`. |
-| LLM calls | **Official OpenAI Go SDK** **[VERIFY]** `github.com/openai/openai-go`; fallback `github.com/sashabaranov/go-openai` | Maintained SDK instead of raw HTTP calls. Tool calling + parallel tool calls via SDK types. |
-| Fan-out/gather | **`golang.org/x/sync/errgroup`** (+ `semaphore`) | Cancellation, error propagation, `SetLimit(4)` for agents and `semaphore(8)` for tools. Replaces raw WaitGroup (D-006). |
-| Config/env | **`github.com/joho/godotenv`** + `os.Getenv` | Load `.env` locally; secrets never logged (D-013 redaction). |
-| Run/trace store | **`modernc.org/sqlite`** (WAL) + append-only JSONL | Pure Go, free, replayable (D-007). |
-| IDs | **`github.com/google/uuid`** | `run_id`, `agent_id`, `span_id`, `trace_id`, `request_id`. |
-| Strict JSON schemas | **`github.com/santhosh-tekuri/jsonschema/v6`** **[VERIFY]** | Validate every tool input/output against `schemas/` contracts. |
-| Random/fake data | **`github.com/brianvoe/gofakeit/v7`** | Product Random Generator (D-012) **and** deterministic fixtures for `eval/`. Verified `/brianvoe/gofakeit`. |
-| HTTP middleware extras | chi `RequestID`, `Recoverer`, `CleanPath`, `Timeout`, `ClientIP*`; zerolog `hlog` | Correlation IDs and verbose request logs flow together. |
-| Product libraries (from chat) | Wails v3, Svelte 5 + Svelte Flow, CodeMirror 6, shadcn-svelte, Tailwind v4, Sonner, Lucide, tinykeys, cmdk-sv, marked, Goja, pgx, mongo-driver, go-git, go-keyring, fsnotify | See `PRODUCT/tech-stack.md`. |
+| UI ↔ Go transport | **Wails v3 bindings** (not a library — framework feature) | Generated TS methods on bound Go structs, typed structs, Promise errors. Verified `/wailsapp/wails` v3.1.0. No HTTP/router needed. |
+| Logging | **`github.com/rs/zerolog`** | Zero-allocation structured JSON, verbose catalog in `docs/13`. Verified `/rs/zerolog`. No `hlog`/`alice`. |
+| LLM calls | **Official OpenAI Go SDK** **[VERIFY]** `github.com/openai/openai-go` | Maintained SDK, tool calling + parallel tool calls. No raw HTTP. |
+| Fan-out/gather | **`golang.org/x/sync/errgroup`** + `semaphore` | Cancellation, error propagation, `SetLimit(4)` agents / `semaphore(8)` tools (D-006, D-014). |
+| Run/trace store | **`modernc.org/sqlite`** (WAL) + append-only JSONL | Pure Go `database/sql`, WAL supported — verified `/websites/pkg_go_dev_modernc_org_sqlite`. One DB for app state + run index. |
+| IDs | **`github.com/google/uuid`** | `run_id`, `agent_id`, `span_id`, `trace_id` (stdlib has no UUID). |
+| Strict JSON schemas | JSON-schema validator **[VERIFY]** `github.com/santhosh-tekuri/jsonschema/v6` | Validates tool I/O against `schemas/`. |
+| Random/fake data | **`github.com/brianvoe/gofakeit/v7`** | RAND feature + deterministic eval fixtures. Verified `/brianvoe/gofakeit`. |
+| Postgres | **`jackc/pgx`** (`pgxpool`) | Built-in pooling, configurable limits/lifetime. Verified `/jackc/pgx`. |
+| MongoDB | **`mongo-driver/v2`** | Internal connection pool; no external pool library. |
+| Git sync | **`go-git/go-git`** | Pure-Go clone/commit/push porcelain. Verified `/go-git/go-git`. |
+| Secrets | **`zalando/go-keyring`** | OS keychain for tokens/PATs; never in `.env.local` sync. |
+| File watching | **`fsnotify`** | Workspace file changes. |
+| JS sandbox | **Goja** **[VERIFY path]** | Pure-Go sandboxed JS for code blocks. |
+| Frontend | Svelte 5 + Svelte Flow, CodeMirror 6, shadcn-svelte, Tailwind v4, Sonner, Lucide, tinykeys, cmdk-sv, marked | Each owns a distinct UI concern. See `PRODUCT/tech-stack.md`. |
 
-> Anything not in this registry requires an ADR before adoption. Prefer the standard library only where no suitable maintained library exists (e.g. `net/http` types, `context`, `encoding/json` used *through* chi/zerolog).
+**Removed as unnecessary (D-018/D-019):** chi v5 + chi middleware, zerolog `hlog`, `alice`, `godotenv`, separate trace DB, all Tauri/Rust tools, SolidJS/Kobalte/markdown-it alternates.
 
-## 12.2 Control plane — chi routes (verbose API)
+> Anything not in this registry requires an ADR. Prefer the standard library only where no suitable library exists (`context`, `encoding/json`, `time`).
+
+## 12.2 Control surface — bound Go methods (no HTTP)
+
+The Wails-bound `Orchestrator` struct exposes these methods to the Svelte frontend (and to the headless CLI runner as ordinary Go calls):
 
 ```
-POST   /v1/runs                       start a run (goal, constraints, budget)
-GET    /v1/runs/{runID}               run status + summary + verification labels
-GET    /v1/runs/{runID}/trace         full JSONL trace (replay source)
-POST   /v1/runs/{runID}/cancel        cancel a running run
-POST   /v1/runs/{runID}/approve       HITL decision for a blocked action
-GET    /v1/runs/{runID}/artifacts     list artifacts
-GET    /v1/agents                     registered agents + tool allow-lists
-GET    /v1/tools                      registered tools + schemas + cost tags
-POST   /v1/tools/{toolName}/validate  validate args against schema before execution
-POST   /v1/eval/runs                  run the 20–100 eval tasks
-GET    /v1/health                     liveness + version + config summary
+StartRun(ctx, goal, constraints, budget) (runID, error)
+GetRun(ctx, runID) (RunStatus, error)
+GetTrace(ctx, runID) ([]TraceEvent, error)
+CancelRun(ctx, runID) error
+ApproveHITL(ctx, runID, decision) error
+ListArtifacts(ctx, runID) ([]Artifact, error)
+ListAgents(ctx) ([]AgentInfo, error)
+ListTools(ctx) ([]ToolInfo, error)
+ValidateToolArgs(ctx, toolName, argsJSON) error
+RunEval(ctx) (EvalReport, error)
 ```
 
-Middleware chain (order matters): `RequestID` → `ClientIP*` → `hlog.NewHandler` → `hlog.AccessHandler` → `hlog.RequestIDHandler` → `Recoverer` → `CleanPath` → `Timeout(60s)` → budget guard → allow-list guard. Every request gets a `request_id` that is copied into the run's log fields.
+- Wails generates the TS declarations automatically; structs need valid `json` tags.
+- Timeouts come from `context.WithTimeout` (60s agent / 30s tool), not HTTP middleware.
+- Correlation IDs come from `uuid`, and are passed as explicit log fields (D-013).
+- If a future standalone daemon is truly needed, re-introduce an HTTP adapter via ADR — it is **not** in this design.
 
 ## 12.3 Components (one responsibility each)
 
 ```
-cmd/orchestrator        entrypoint: config, chi router, graceful shutdown
-internal/api            chi handlers + middleware (no business logic)
-internal/orchestrator   Manager: fan-out, gather, merge, budget, circuit breaker
-internal/agent          Agent interface; manager + research/planner/executor/verifier
-internal/tool           Tool interface; registry; strict schema validation; allow-lists
-internal/llm            LLM SDK wrapper: retries, token accounting, tool-call parsing
-internal/state          typed shared state, per-agent scratch, artifact store
-internal/trace          JSONL writer + SQLite index + replay reader
-internal/guard          budgets, timeouts, HITL, sandbox policy, redaction
-internal/eval           eval task runner + scoring (uses gofakeit fixtures)
-internal/logging        zerolog setup + event catalog (docs/13)
+cmd/ant-hill           Wails entrypoint: config, bind Orchestrator, graceful shutdown
+internal/orchestrator  Manager: fan-out, gather, merge, budget, circuit breaker
+internal/agent         Agent interface; manager + research/planner/executor/verifier
+internal/tool          Tool interface; registry; strict schema validation; allow-lists
+internal/llm           SDK wrapper: retries, token accounting, tool-call parsing
+internal/state         typed shared state, per-agent scratch, artifact store
+internal/trace         JSONL writer + SQLite index + replay reader
+internal/guard         budgets, timeouts, HITL, sandbox policy, redaction
+internal/eval          eval task runner + scoring (gofakeit fixtures)
+internal/logging       zerolog setup + event catalog (docs/13)
 ```
 
 ## 12.4 Run lifecycle (verbose, traceable)
 
-1. **Start** — `POST /v1/runs` → generate `run_id` (uuid), create `runs/<run-id>/`, write `metadata.json` with goal/constraints/budget/model, log `run.started` with all fields.
-2. **Plan** — Manager calls Planner specialist; produce typed subtask list; log `agent.plan.completed` with subtask count.
-3. **Fan-out** — `errgroup.WithContext(ctx)`, `group.SetLimit(4)`; launch Research/Planner/Executor (and any needed specialists) concurrently. Each agent gets a **copy** of only the shared-state keys it may read (D-... state rules in `docs/05`).
-4. **Tool calls** — model emits multiple tool calls; tool concurrency capped by `semaphore(8)`; each call validated against `schemas/` before execution; every input/output logged verbatim to trace (redacted per D-013).
-5. **Gather** — `group.Wait()`; first error cancels siblings; partial results are labeled and kept ("use what you got", `docs/07`).
-6. **Verify** — Verifier checks every claim against citations/tool-output IDs; labels `verified / unverified / assumption`; unverified claims are removed before synthesis.
-7. **Synthesize** — Manager writes final answer from verified material only; writes `summary.json` with merge decision + labels.
-8. **Finish** — log `run.completed` with totals: tokens in/out, cost, duration, retries, agents used, verification counts. Persist trace, artifacts, and summary. Run is now replayable.
+1. **Start** — `StartRun` → generate `run_id` (uuid), create `runs/<run-id>/`, write `metadata.json` with goal/constraints/budget/model, log `run.started`.
+2. **Plan** — Manager calls Planner specialist; typed subtask list; log `agent.plan.completed`.
+3. **Fan-out** — `errgroup.WithContext(ctx)`, `group.SetLimit(4)`; launch Research/Planner/Executor concurrently. Each agent receives a copy of only the shared-state keys it may read (`docs/05`).
+4. **Tool calls** — model emits multiple tool calls; `semaphore(8)` caps concurrency; each call validated against `schemas/`; full I/O logged verbatim (redacted per D-013).
+5. **Gather** — `group.Wait()`; first error cancels siblings; partial results labeled and kept (`docs/07`).
+6. **Verify** — Verifier checks every claim against citations/tool-output IDs; labels `verified / unverified / assumption`; unverified material removed.
+7. **Synthesize** — Manager writes final answer from verified material only; `summary.json` records merge decision + labels.
+8. **Finish** — log `run.completed` with tokens in/out, cost, duration, retries, agents, verification counts. Run is replayable.
 
 ## 12.5 Concurrency in practice (library-first)
 
-- Agents: `errgroup` with `SetLimit(4)` and a cancellable context from `middleware.Timeout` / `context.WithTimeout`.
-- Tools: `semaphore.NewWeighted(8)` acquired per tool call; release via `defer`.
-- Retries: `errgroup` worker wraps tool call in a retry loop (max 3, exponential backoff) — implemented in `internal/llm`/`internal/tool`, not repeated in each agent.
+- Agents: `errgroup` with `SetLimit(4)` and `context.WithTimeout(60s)`.
+- Tools: `semaphore.NewWeighted(8)`, released with `defer`.
+- Retries: bounded loop in `internal/llm` / `internal/tool` (max 3, exponential backoff) — written once, not per agent.
 - Circuit breaker: counter in `internal/orchestrator`; opens at 3 consecutive failures or 80% budget; logs `circuit_breaker.opened`.
 
-## 12.6 Verbose trace event shape (see `docs/13` for full catalog)
+## 12.6 Verbose trace event shape (`docs/13`)
 
 ```json
 {
   "ts": "2026-11-19T18:49:15Z",
   "level": "info",
   "event": "tool.call.completed",
-  "run_id": "…", "agent_id": "research", "span_id": "…", "request_id": "…",
+  "run_id": "…", "agent_id": "research", "span_id": "…", "trace_id": "…", "call_id": "…",
   "tool_name": "web_search", "retry_count": 0,
   "input": {"query": "…"}, "output": {"results": 3},
   "tokens_in": 120, "tokens_out": 340, "cost_usd": 0.0012,
@@ -88,11 +97,8 @@ internal/logging        zerolog setup + event catalog (docs/13)
 }
 ```
 
-## 12.7 Contract rule (unchanged, now library-aware)
-Every agent (`agents/`) and tool (`tools/`) contract must additionally name:
-- the **library** it uses for I/O (no raw socket/curl/HTTP hand-rolling),
-- the **log events** it emits (from `docs/13`),
-- its **budget tag** and **allow-list membership**.
+## 12.7 Contract rule
+Every agent (`agents/`) and tool (`tools/`) contract must name its library, log events (`docs/13`), budget tag, and allow-list membership.
 
 ## 12.8 Verify before implementation
-Items in `DECISIONS.md` §Factual checks — especially the LLM SDK module path, JSON-schema library, and Goja import path. Verify with Context7/official docs, then start Phase 0 of `BUILD-PLAN.md`.
+Items in `DECISIONS.md` §Factual checks (SDK path, JSON-schema path, Goja path, Postman variables). Verified libs already checked via Context7 are listed in D-019.

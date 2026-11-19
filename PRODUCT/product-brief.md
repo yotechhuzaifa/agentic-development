@@ -1,6 +1,8 @@
 # Product Brief — source of truth: "what we are building"
 
-> Product facts below are extracted from the saved chat `Directly Chat with Frontier AI Search Models (11_19_2026 6：49：15 PM).html`, except the **Random Generator** (requested by you, in [`random-generator.md`](random-generator.md)) and the **Go agentic runtime libraries** (requested by you, chi + zerolog). All choices are final in [`DECISIONS.md`](../DECISIONS.md). Chat truncations are flagged **[CONFIRM]**; factual checks are **[VERIFY]**.
+**Project name: AntHill** (D-017). Queen = manager, workers = specialists, tunnels = flows, pheromone trails = edges between blocks, mound = workspace.
+
+> Product facts below are extracted from the saved chat `Directly Chat with Frontier AI Search Models (11_19_2026 6：49：15 PM).html`, except the **Random Generator** (requested by you, in [`random-generator.md`](random-generator.md)) and the **Go agentic runtime libraries** (requested by you: zerolog; Wails bindings replace the initially requested chi — D-018). All choices are final in [`DECISIONS.md`](../DECISIONS.md). Chat truncations are flagged **[CONFIRM]**; factual checks are **[VERIFY]**.
 
 ## One-line vision
 A **lightweight desktop visual flow app for API + database workflows** — "Postman Flows meets database workflows, in a lightweight desktop app."
@@ -33,7 +35,7 @@ Full detail — framework verdict, rejected alternatives, every library, archite
 | Frontend | **Svelte 5 + Svelte Flow** (ACCEPTED, D-008); **CodeMirror 6**; **shadcn-svelte**; **Tailwind CSS v4**; **Sonner**; Lucide; tinykeys; cmdk-sv; marked |
 | JS sandbox | **Goja** (pure Go, sandboxed, ships in the binary). Inject `getSecret()`, `showToast()`, `setVariable()`, `console.log`. ES2020 only. Rejected: embedded V8, spawning Node, running in WebView |
 | DB manager | Postgres pool via **pgx**, Mongo pool, SQLite app state |
-| HTTP | **net/http** + cURL parser |
+| HTTP | **net/http** + cURL parser — outbound REST calls only; no HTTP server/router in the app (D-018) |
 | Sync | **go-git**, file watcher, optional E2E encryption; **go-keyring** for OS keychain |
 
 ## Storage model (critical invariant)
@@ -57,7 +59,7 @@ Real-time collaboration, CRDTs, deep CI/CD platform, becoming n8n (scope-creep r
 
 ## Added by you (not in chat)
 - **Postman-style Random Generator** — gofakeit v7, dynamic variables + generator block (`RAND-01`–`RAND-08`, D-012). Full spec: [`random-generator.md`](random-generator.md).
-- **Go agentic runtime** — chi v5 routing + zerolog verbose logging + errgroup + official OpenAI Go SDK (D-002–D-007). Full spec: [`docs/12-go-agent-runtime.md`](../docs/12-go-agent-runtime.md).
+- **Go agentic runtime** — Wails-bound methods (no HTTP router) + zerolog verbose logging + errgroup + official OpenAI Go SDK (D-002–D-007, D-018/D-019). Full spec: [`docs/12-go-agent-runtime.md`](../docs/12-go-agent-runtime.md).
 - **Verbose everywhere** — verbose logs, traces, errors, docs, CLI (D-013, `docs/13-verbose-logging.md`).
 
 ## Remaining factual checks (not decisions)

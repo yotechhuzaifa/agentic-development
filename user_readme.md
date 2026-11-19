@@ -1,12 +1,14 @@
 # user_readme — for you
 
+**Project name: AntHill** (D-017). Folder is now `/home/yotech70/AntHill/`.
+
 Your personal sheet. Everything is **decided** — you no longer need to choose an architecture. Your remaining job is to verify a short factual list, then paste `HANDOVER.md` to an AI and approve its Phase 0 contracts.
 
 ## Your preferences — now locked in as decisions
 | You said | Where it is locked |
 |---|---|
 | "use library rather raw coding" | D-005, D-006 + [`docs/14-library-policy.md`](docs/14-library-policy.md) — library registry in `docs/12.1` |
-| "use chi library for routing" | D-003 — chi v5 + middleware; routes in `docs/12.2` |
+| "use chi library for routing" | D-018 — **removed as redundant**: Wails bindings handle UI↔Go; no HTTP router |
 | "use zerolog for logging" | D-004 — verbose JSON, redaction, event catalog in `docs/13-verbose-logging.md` |
 | "i like verbose" | D-013 — verbose logs, traces, errors, docs, CLI; `--quiet` only affects console |
 | "randomGenerator for postman" | D-012 — gofakeit v7; full spec in [`PRODUCT/random-generator.md`](PRODUCT/random-generator.md) (RAND-01–RAND-08) |
@@ -22,7 +24,7 @@ A lightweight desktop visual flow app for API + database workflows ("Postman Flo
 
 ## Things to keep in mind
 1. **Nothing is left to decide architecturally.** Don't re-litigate `DECISIONS.md`; the AI is told not to either. To change something, write a new ADR that marks the old one superseded.
-2. **Library-first is a rule with a test** (`docs/14`): use an approved library before writing custom code. chi, zerolog, errgroup, gofakeit, the LLM SDK, uuid, sqlite, jsonschema — no raw HTTP routing, no custom logger, no hand-rolled random strings.
+2. **Library-first, but only what is needed** (`docs/14`, D-019): use an approved library before writing custom code. zerolog, errgroup, gofakeit, LLM SDK, uuid, sqlite, pgx, go-git, jsonschema — UI↔Go via Wails bindings. No HTTP router, no custom logger, no hand-rolled random strings.
 3. **Verbose is deliberate.** Big logs and big docs are the point, not a bug. Redaction keeps them safe (never log secret values).
 4. **Verifier is mandatory.** Every claim needs a citation/tool-output ID; outputs labeled verified / unverified / assumption.
 5. **Bound everything.** Concrete budgets/timeouts/HITL numbers are in D-014 / D-015 (e.g. 4 agents, 8 tools, 200k tokens/run, 60s agent timeout, 3 retries, breaker at 3 failures or 80% budget).
@@ -49,4 +51,4 @@ These are in `HANDOVER.md` and `DECISIONS.md` §Factual checks:
 **No runnable code yet.** Documentation, contracts, ADRs, and placeholder README folders only — exactly as you asked.
 
 ## Source
-Saved chat: `/mnt/c/Users/yotech70/Downloads/Directly Chat with Frontier AI Search Models (11_19_2026 6：49：15 PM).html` (original: https://arena.ai/c/01a1f3bc-7051-7394-90e3-20b1f1e092a7). Additions from you: random generator, chi/zerolog/Go runtime, verbosity. Library facts verified with Context7: `/go-chi/docs`, `/rs/zerolog`, `/brianvoe/gofakeit`.
+Saved chat: `/mnt/c/Users/yotech70/Downloads/Directly Chat with Frontier AI Search Models (11_19_2026 6：49：15 PM).html` (original: https://arena.ai/c/01a1f3bc-7051-7394-90e3-20b1f1e092a7). Additions from you: random generator, Go runtime, verbosity (chi was requested then removed as redundant, D-018). Library facts verified with Context7: `/wailsapp/wails`, `/rs/zerolog`, `/brianvoe/gofakeit`, `/websites/pkg_go_dev_modernc_org_sqlite`, `/jackc/pgx`, `/go-git/go-git`.
